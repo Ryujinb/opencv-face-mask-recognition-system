@@ -1,7 +1,7 @@
 import cv2
 
-#웹캠 열기
 webcam = cv2.VideoCapture(0)
+#웹캠 열기
 
 if not webcam.isOpened():
     print("Could not open webcam")
