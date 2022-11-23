@@ -1,1 +1,1 @@
-# opencv-face-mask-recognition-system
+#opencv를 활용한 마스크 인식 시스템
