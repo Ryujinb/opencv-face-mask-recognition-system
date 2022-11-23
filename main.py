@@ -1,5 +1,6 @@
 import cv2
 
+#웹캠 열기
 webcam = cv2.VideoCapture(0)
 
 if not webcam.isOpened():
