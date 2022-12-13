@@ -1,21 +1,45 @@
 import tensorflow as tf
 import numpy as np
-import time
+
 import cv2
 
-# Define the input size of the model
-input_size = (224, 224)
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import storage
+
+from uuid import uuid4
+import time
+import os
+
+# Firebase storage 인증 및 앱 초기화
+cred = credentials.Certificate('dbkey.json')  # 경로를 파이참 프로젝트 외부로 지정하고 인증키를 절대로 업로드 하지 마세요.
+firebase_admin.initialize_app(cred, {
+    'storageBucket': 'opencv-mask.appspot.com'
+})
+bucket = storage.bucket()  # 기본 버킷 사용
+
+
+# firestorage에 파일 업로드를 하기 위한 함수
+def fileUpload(file):
+    blob = bucket.blob('photo/' + file)
+    # new token and metadata 설정
+    new_token = uuid4()
+    metadata = {"firebaseStorageDownloadTokens": new_token}  # access token이 필요하다.
+    blob.metadata = metadata
+    # upload file
+    blob.upload_from_filename(filename='./temp_photo/' + str(now) + ".jpg")
+
 
 # Open the cam
-cap = cv2.VideoCapture(0)  # webcam 불러오기
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 5)
 
 # Load the saved model
 model = tf.keras.models.load_model("keras_model.h5", compile=False)
-while cap.isOpened():
-    # Set time before model inference
-    start_time = time.time()
+# Define the input size of the model
+input_size = (224, 224)
 
+while cap.isOpened():
     # Reading frames from the camera
     ret, frame = cap.read()
     if not ret:
@@ -30,21 +54,21 @@ while cap.isOpened():
     is_mask_prob = model.predict(model_frame)[0]
     is_mask = np.argmax(is_mask_prob)
 
-    # Compute the model inference time
-    inference_time = time.time() - start_time
-    fps = 1 / inference_time
-    fps_msg = "Time: {:05.1f}ms {:.1f} FPS".format(inference_time * 1000, fps)
-
     # Add Information on screen
     if is_mask == 0:
-        msg_mask = "mask on"
+        msg_mask = "mask"
+        now = time.strftime('%Y-%m-%d %H %M %S', time.localtime(time.time()))
+        cv2.imwrite('./temp_photo/' + str(now) + ".jpg", frame)
+        fileUpload(now)
+        time.sleep(2)
+        os.remove('./temp_photo/' + str(now) + ".jpg")
+    elif is_mask == 1:
+        msg_mask = "no mask"
     else:
-        msg_mask = "mask off"
+        msg_mask = "nothing"
 
     msg_mask += " ({:.1f})%".format(is_mask_prob[is_mask] * 100)
-
-    cv2.putText(frame, fps_msg, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), thickness=1)
-    cv2.putText(frame, msg_mask, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), thickness=2)
+    cv2.putText(frame, msg_mask, (10, 30), cv2.FONT_ITALIC, 1, (51, 102, 0), thickness=2)
 
     # Show the result and frame
     cv2.imshow('face mask detection', frame)
