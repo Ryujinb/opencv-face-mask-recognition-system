@@ -22,7 +22,6 @@ ad = serial.Serial(
     baudrate=9600,
 )
 
-
 # Firebase storage 인증 및 앱 초기화
 cred = credentials.Certificate('dbkey.json')  # 경로를 파이참 프로젝트 외부로 지정하고 인증키를 절대로 업로드 하지 마세요.
 firebase_admin.initialize_app(cred, {
@@ -35,7 +34,7 @@ bucket = storage.bucket()
 
 # firestorage에 파일 업로드를 하기 위한 함수
 def fileUpload(file):
-    #저장 위치 지정
+    # 저장 위치 지정
     blob = bucket.blob('photo/' + file)
     # new token and metadata 설정
     new_token = uuid4()
@@ -79,32 +78,35 @@ while cap.isOpened():
             msg_mask = "Mask detected"
             # checked가 false일 경우만 업로드 및 데이터 전송을 한다.
             if not checked:
-                now = time.strftime('%Y-%m-%d %H %M %S', time.localtime(time.time()))
-                # 현재날짜,시간을 파일 이름으로 하여 로컬에 캡처저장
+                now = time.strftime('%m%d%H%M%S', time.localtime(time.time()))
+                # 현재시간을 파일 이름으로 하여 로컬에 캡처저장
                 cv2.imwrite('./temp_photo/' + str(now) + ".jpg", frame)
-                #업로드 함수를 통한 업로드
+                # 업로드 함수를 통한 업로드
                 fileUpload(now)
                 checked = True
                 # 로컬에 저장된 사진은 삭제
                 os.remove('./temp_photo/' + str(now) + ".jpg")
-                # 아두이노에 1을 전송
+                # 아두이노에 1을 전송, DB 태그 값을 위한 현재시간 전송
                 mask = '1'
                 mask = mask.encode('utf-8')
-                ad.write(mask)
+                now = now.encode('utf-8')
+                ad.write(mask+now)
 
         # 마스크를 안쓰고 있으면
         elif is_mask == 1:
             msg_mask = "No mask"
-            # 아두이노에 2를 전송
+            now = time.strftime('%m%d%H%M%S', time.localtime(time.time()))
+            # 아두이노에 2, DB 태그 값을 위한 현재시간 전송
             mask = '2'
             mask = mask.encode('utf-8')
-            ad.write(mask)
+            now = now.encode('utf-8')
+            ad.write(mask+now)
 
         # 빈 벽일시
         else:
             msg_mask = "Nothing"
             # 빈 벽이 나오면 checked를 false로 바꾼다.
-            checked=False
+            checked = False
 
         msg_mask += " ({:.1f})%".format(is_mask_prob[is_mask] * 100)
 
