@@ -1,0 +1,63 @@
+#include <SoftwareSerial.h> //시리얼통신 라이브러리 호출
+
+byte mask; //마스크 착용 여부
+String data; // 마스크 착용 여부+ db접근 태그 값
+
+int do1 = 262;
+int mi = 330;
+int sol = 392;
+int do2 = 523;
+ 
+SoftwareSerial mySerial(5, 4);  //시리얼 통신을 위한 객체선언
+ 
+void setup() 
+{
+  Serial.begin(9600);   //시리얼모니터
+  mySerial.begin(9600); //블루투스 시리얼
+  pinMode(8, OUTPUT); //빨간 led
+  pinMode(9, OUTPUT); //초록 led
+  pinMode(10, OUTPUT); // 부저
+  pinMode(7, OUTPUT); // ina fan
+  pinMode(6, OUTPUT); // inb fan
+}
+
+void loop() {
+  
+ if(Serial.available()){
+    data = Serial.readString(); // 받아온 값을 data에 저장
+    mask=data.charAt(0); // 마스크 착용 여부 추출
+ }
+  
+    if(mask=='1'){ //마스크 착용시
+     mySerial.print(data); //마스크 착용 여부, 태그 값 전송
+      digitalWrite(9, HIGH); //초록 led on
+      digitalWrite(7,HIGH); //ina 팬 on
+      digitalWrite(6,LOW); 
+
+      //통과음
+      tone(10, do1, 250);
+      delay(250);
+      tone(10, mi, 250);
+      delay(250);
+      tone(10, sol, 250);
+      delay(250);
+      tone(10, do2, 250);
+      
+      delay(1750);
+      digitalWrite(7,LOW); //팬 끄기
+      digitalWrite(6,LOW); 
+      digitalWrite(9, LOW); //led 끄기
+    }
+    
+    else if(mask=='2'){ //마스크 미착용시
+     mySerial.print(data); //마스크 착용 여부, 태그 값 전송
+      digitalWrite(8, HIGH); //빨간 led on
+      tone(10, do2, 1000); //경고음
+      delay(2500);
+      digitalWrite(8, LOW); // led 끄기
+    }
+
+     else delay(2500);
+     mask='\0';
+     data="";
+}
